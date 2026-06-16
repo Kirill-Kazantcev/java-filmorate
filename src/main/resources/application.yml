@@ -1,0 +1,12 @@
+server:
+  port: 8081
+
+logging:
+  level:
+    ru.yandex.practicum.filmorate: DEBUG
+    org.springframework.web: INFO
+
+spring:
+  jackson:
+    date-format: yyyy-MM-dd
+    time-zone: UTC
