@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import ru.yandex.practicum.filmorate.validator.ReleaseDate;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Сущность фильма для внутреннего использования.
@@ -22,4 +24,7 @@ public class Film {
     @ReleaseDate
     private LocalDate releaseDate;
     private Integer duration;
+
+    @Builder.Default
+    private Set<Integer> likes = new HashSet<>();
 }

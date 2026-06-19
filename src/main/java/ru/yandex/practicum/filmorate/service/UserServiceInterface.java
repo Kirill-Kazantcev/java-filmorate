@@ -18,4 +18,12 @@ public interface UserServiceInterface {
     List<UserDto> findAll();
 
     void delete(Integer id);
+
+    void addFriend(Integer userId, Integer friendId);
+
+    void removeFriend(Integer userId, Integer friendId);
+
+    List<UserDto> getFriends(Integer userId);
+
+    List<UserDto> getCommonFriends(Integer userId, Integer otherId);
 }

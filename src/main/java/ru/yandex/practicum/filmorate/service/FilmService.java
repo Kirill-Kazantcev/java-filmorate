@@ -8,8 +8,11 @@ import ru.yandex.practicum.filmorate.model.dto.FilmDto;
 import ru.yandex.practicum.filmorate.model.entity.Film;
 import ru.yandex.practicum.filmorate.model.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -18,6 +21,7 @@ import java.util.List;
 public class FilmService implements FilmServiceInterface {
 
     private final FilmStorage filmStorage;
+    private final UserStorage userStorage;
     private final FilmMapper filmMapper;
 
     @Override
@@ -50,7 +54,7 @@ public class FilmService implements FilmServiceInterface {
         log.debug("Запрос всех фильмов");
         return filmStorage.findAll().stream()
                 .map(filmMapper::toDto)
-                .toList();
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -59,5 +63,64 @@ public class FilmService implements FilmServiceInterface {
         filmStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
         filmStorage.deleteById(id);
+    }
+
+    @Override
+    public void addLike(Integer filmId, Integer userId) {
+        log.debug("Добавление лайка: filmId={}, userId={}", filmId, userId);
+
+        Film film = getFilmById(filmId);
+        userStorage.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
+
+        boolean added = film.getLikes().add(userId);
+        if (added) {
+            filmStorage.update(film);
+            log.info("Пользователь {} поставил лайк фильму {}", userId, filmId);
+        } else {
+            log.debug("Пользователь {} уже поставил лайк фильму {}", userId, filmId);
+        }
+    }
+
+    @Override
+    public void removeLike(Integer filmId, Integer userId) {
+        log.debug("Удаление лайка: filmId={}, userId={}", filmId, userId);
+
+        Film film = getFilmById(filmId);
+        userStorage.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
+
+        boolean removed = film.getLikes().remove(userId);
+        if (removed) {
+            filmStorage.update(film);
+            log.info("Пользователь {} удалил лайк у фильма {}", userId, filmId);
+        } else {
+            log.warn("Пользователь {} не ставил лайк фильму {}", userId, filmId);
+            throw new NotFoundException("Пользователь не ставил лайк этому фильму");
+        }
+    }
+
+    @Override
+    public List<FilmDto> getPopularFilms(Integer count) {
+        int limit = (count != null && count > 0) ? count : 10;
+        log.debug("Запрос популярных фильмов: count={}", limit);
+
+        List<Film> allFilms = filmStorage.findAll();
+
+        if (allFilms.isEmpty()) {
+            log.debug("Нет фильмов для отображения");
+            return List.of();
+        }
+
+        return allFilms.stream()
+                .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
+                .limit(limit)
+                .map(filmMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    private Film getFilmById(Integer id) {
+        return filmStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
     }
 }

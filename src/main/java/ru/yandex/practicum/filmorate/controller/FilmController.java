@@ -22,13 +22,13 @@ public class FilmController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public FilmDto createFilm(@Valid @RequestBody FilmDto filmDto) {
-        log.info("Запрос на создание фильма: {}", filmDto.name());  // ← name(), а не getName()
+        log.info("Запрос на создание фильма: {}", filmDto.name());
         return filmService.create(filmDto);
     }
 
     @PutMapping
     public FilmDto updateFilm(@Valid @RequestBody FilmDto filmDto) {
-        log.info("Запрос на обновление фильма: id={}", filmDto.id());  // ← id(), а не getId()
+        log.info("Запрос на обновление фильма: id={}", filmDto.id());
         return filmService.update(filmDto);
     }
 
@@ -49,5 +49,24 @@ public class FilmController {
     public void deleteFilm(@PathVariable Integer id) {
         log.info("Запрос на удаление фильма: id={}", id);
         filmService.delete(id);
+    }
+    @PutMapping("/{id}/like/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void addLike(@PathVariable Integer id, @PathVariable Integer userId) {
+        log.info("Запрос на добавление лайка: filmId={}, userId={}", id, userId);
+        filmService.addLike(id, userId);
+    }
+
+    @DeleteMapping("/{id}/like/{userId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeLike(@PathVariable Integer id, @PathVariable Integer userId) {
+        log.info("Запрос на удаление лайка: filmId={}, userId={}", id, userId);
+        filmService.removeLike(id, userId);
+    }
+
+    @GetMapping("/popular")
+    public List<FilmDto> getPopularFilms(@RequestParam(required = false) Integer count) {
+        log.info("Запрос на получение популярных фильмов: count={}", count);
+        return filmService.getPopularFilms(count);
     }
 }

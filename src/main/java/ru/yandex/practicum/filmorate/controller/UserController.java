@@ -50,4 +50,30 @@ public class UserController {
         log.info("Запрос на удаление пользователя: id={}", id);
         userService.delete(id);
     }
+
+    @PutMapping("/{id}/friends/{friendId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void addFriend(@PathVariable Integer id, @PathVariable Integer friendId) {
+        log.info("Запрос на добавление в друзья: userId={}, friendId={}", id, friendId);
+        userService.addFriend(id, friendId);
+    }
+
+    @DeleteMapping("/{id}/friends/{friendId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeFriend(@PathVariable Integer id, @PathVariable Integer friendId) {
+        log.info("Запрос на удаление из друзей: userId={}, friendId={}", id, friendId);
+        userService.removeFriend(id, friendId);
+    }
+
+    @GetMapping("/{id}/friends")
+    public List<UserDto> getFriends(@PathVariable Integer id) {
+        log.info("Запрос на получение списка друзей: userId={}", id);
+        return userService.getFriends(id);
+    }
+
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public List<UserDto> getCommonFriends(@PathVariable Integer id, @PathVariable Integer otherId) {
+        log.info("Запрос на получение общих друзей: userId={}, otherId={}", id, otherId);
+        return userService.getCommonFriends(id, otherId);
+    }
 }

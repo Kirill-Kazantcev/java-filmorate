@@ -5,6 +5,7 @@ logging:
   level:
     ru.yandex.practicum.filmorate: DEBUG
     org.springframework.web: INFO
+    org.zalando.logbook: TRACE
 
 spring:
   jackson:

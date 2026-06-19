@@ -18,4 +18,10 @@ public interface FilmServiceInterface {
     List<FilmDto> findAll();
 
     void delete(Integer id);
+
+    void addLike(Integer filmId, Integer userId);
+
+    void removeLike(Integer filmId, Integer userId);
+
+    List<FilmDto> getPopularFilms(Integer count);
 }
