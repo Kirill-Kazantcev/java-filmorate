@@ -80,6 +80,11 @@ public class UserService implements UserServiceInterface {
             throw new ValidationException("Нельзя добавить самого себя в друзья");
         }
 
+        if (user.getFriends().contains(friendId)) {
+            log.debug("Пользователи уже являются друзьями: {} <-> {}", userId, friendId);
+            return;
+        }
+
         boolean userAdded = user.getFriends().add(friendId);
         boolean friendAdded = friend.getFriends().add(userId);
 
@@ -87,8 +92,6 @@ public class UserService implements UserServiceInterface {
             userStorage.update(user);
             userStorage.update(friend);
             log.info("Пользователи стали друзьями: {} <-> {}", userId, friendId);
-        } else {
-            log.debug("Пользователи уже являются друзьями: {} <-> {}", userId, friendId);
         }
     }
 
@@ -107,8 +110,7 @@ public class UserService implements UserServiceInterface {
             userStorage.update(friend);
             log.info("Пользователи перестали быть друзьями: {} <-> {}", userId, friendId);
         } else {
-            log.warn("Пользователи не являются друзьями: {} <-> {}", userId, friendId);
-            throw new NotFoundException("Пользователи не являются друзьями");
+            log.debug("Пользователи не являются друзьями (удаление игнорируется): {} <-> {}", userId, friendId);
         }
     }
 

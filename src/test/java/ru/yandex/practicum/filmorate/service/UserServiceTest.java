@@ -98,6 +98,18 @@ class UserServiceTest {
     }
 
     @Test
+    void addFriend_ShouldNotThrowException_WhenUsersAlreadyFriends() {
+        user1.getFriends().add(2);
+        user2.getFriends().add(1);
+
+        when(userStorage.findById(1)).thenReturn(Optional.of(user1));
+        when(userStorage.findById(2)).thenReturn(Optional.of(user2));
+
+        assertDoesNotThrow(() -> userService.addFriend(1, 2));
+        verify(userStorage, never()).update(any(User.class));
+    }
+
+    @Test
     void removeFriend_ShouldRemoveBothUsersFromEachOtherFriends() {
         user1.getFriends().add(2);
         user2.getFriends().add(1);
@@ -114,11 +126,11 @@ class UserServiceTest {
     }
 
     @Test
-    void removeFriend_ShouldThrowNotFoundException_WhenUsersNotFriends() {
+    void removeFriend_ShouldNotThrowException_WhenUsersNotFriends() {
         when(userStorage.findById(1)).thenReturn(Optional.of(user1));
         when(userStorage.findById(2)).thenReturn(Optional.of(user2));
 
-        assertThrows(NotFoundException.class, () -> userService.removeFriend(1, 2));
+        assertDoesNotThrow(() -> userService.removeFriend(1, 2));
         verify(userStorage, never()).update(any(User.class));
     }
 
