@@ -50,6 +50,7 @@ public class FilmController {
         log.info("Запрос на удаление фильма: id={}", id);
         filmService.delete(id);
     }
+
     @PutMapping("/{id}/like/{userId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void addLike(@PathVariable Integer id, @PathVariable Integer userId) {
