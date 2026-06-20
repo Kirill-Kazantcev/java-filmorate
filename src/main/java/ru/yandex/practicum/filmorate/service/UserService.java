@@ -165,6 +165,7 @@ public class UserService implements UserServiceInterface {
         return userStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
     }
+
     private void checkUsersNotSame(Integer userId, Integer otherId) {
         if (userId.equals(otherId)) {
             log.warn("Попытка операции с самим собой: userId={}", userId);
