@@ -35,8 +35,7 @@ public class FilmService implements FilmServiceInterface {
     @Override
     public FilmDto update(FilmDto filmDto) {
         log.debug("Обновление фильма: id={}", filmDto.id());
-        filmStorage.findById(filmDto.id())
-                .orElseThrow(() -> new NotFoundException("Фильм с id=" + filmDto.id() + " не найден"));
+        getFilmById(filmDto.id());
         Film film = filmMapper.toEntity(filmDto);
         Film updated = filmStorage.update(film);
         return filmMapper.toDto(updated);
@@ -44,8 +43,7 @@ public class FilmService implements FilmServiceInterface {
 
     @Override
     public FilmDto findById(Integer id) {
-        Film film = filmStorage.findById(id)
-                .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
+        Film film = getFilmById(id);
         return filmMapper.toDto(film);
     }
 
@@ -60,8 +58,7 @@ public class FilmService implements FilmServiceInterface {
     @Override
     public void delete(Integer id) {
         log.debug("Удаление фильма: id={}", id);
-        filmStorage.findById(id)
-                .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
+        getFilmById(id);
         filmStorage.deleteById(id);
     }
 
@@ -70,8 +67,7 @@ public class FilmService implements FilmServiceInterface {
         log.debug("Добавление лайка: filmId={}, userId={}", filmId, userId);
 
         Film film = getFilmById(filmId);
-        userStorage.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
+        getUserById(userId);
 
         boolean added = film.getLikes().add(userId);
         if (added) {
@@ -87,8 +83,7 @@ public class FilmService implements FilmServiceInterface {
         log.debug("Удаление лайка: filmId={}, userId={}", filmId, userId);
 
         Film film = getFilmById(filmId);
-        userStorage.findById(userId)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userId + " не найден"));
+        getUserById(userId);
 
         boolean removed = film.getLikes().remove(userId);
         if (removed) {
@@ -105,16 +100,7 @@ public class FilmService implements FilmServiceInterface {
         int limit = (count != null && count > 0) ? count : 10;
         log.debug("Запрос популярных фильмов: count={}", limit);
 
-        List<Film> allFilms = filmStorage.findAll();
-
-        if (allFilms.isEmpty()) {
-            log.debug("Нет фильмов для отображения");
-            return List.of();
-        }
-
-        return allFilms.stream()
-                .sorted(Comparator.comparingInt((Film f) -> f.getLikes().size()).reversed())
-                .limit(limit)
+        return filmStorage.findPopular(limit).stream()
                 .map(filmMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -122,5 +108,9 @@ public class FilmService implements FilmServiceInterface {
     private Film getFilmById(Integer id) {
         return filmStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException("Фильм с id=" + id + " не найден"));
+    }
+    private void getUserById(Integer id) {
+        userStorage.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
     }
 }

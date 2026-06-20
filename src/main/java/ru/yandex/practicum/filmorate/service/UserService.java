@@ -37,8 +37,7 @@ public class UserService implements UserServiceInterface {
     @Override
     public UserDto update(UserDto userDto) {
         log.debug("Обновление пользователя: id={}", userDto.id());
-        userStorage.findById(userDto.id())
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + userDto.id() + " не найден"));
+        getUserById(userDto.id());
         User user = userMapper.toEntity(userDto);
         normalizeName(user);
         User updated = userStorage.update(user);
@@ -47,8 +46,7 @@ public class UserService implements UserServiceInterface {
 
     @Override
     public UserDto findById(Integer id) {
-        User user = userStorage.findById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+        User user = getUserById(id);
         return userMapper.toDto(user);
     }
 
@@ -63,8 +61,7 @@ public class UserService implements UserServiceInterface {
     @Override
     public void delete(Integer id) {
         log.debug("Удаление пользователя: id={}", id);
-        userStorage.findById(id)
-                .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+        getUserById(id);
         userStorage.deleteById(id);
     }
 
@@ -72,13 +69,10 @@ public class UserService implements UserServiceInterface {
     public void addFriend(Integer userId, Integer friendId) {
         log.debug("Добавление в друзья: userId={}, friendId={}", userId, friendId);
 
+        checkUsersNotSame(userId, friendId);
+
         User user = getUserById(userId);
         User friend = getUserById(friendId);
-
-        if (userId.equals(friendId)) {
-            log.warn("Попытка добавить самого себя в друзья: userId={}", userId);
-            throw new ValidationException("Нельзя добавить самого себя в друзья");
-        }
 
         if (user.getFriends().contains(friendId)) {
             log.debug("Пользователи уже являются друзьями: {} <-> {}", userId, friendId);
@@ -98,6 +92,8 @@ public class UserService implements UserServiceInterface {
     @Override
     public void removeFriend(Integer userId, Integer friendId) {
         log.debug("Удаление из друзей: userId={}, friendId={}", userId, friendId);
+
+        checkUsersNotSame(userId, friendId);
 
         User user = getUserById(userId);
         User friend = getUserById(friendId);
@@ -137,6 +133,8 @@ public class UserService implements UserServiceInterface {
     public List<UserDto> getCommonFriends(Integer userId, Integer otherId) {
         log.debug("Получение общих друзей: userId={}, otherId={}", userId, otherId);
 
+        checkUsersNotSame(userId, otherId);
+
         User user = getUserById(userId);
         User other = getUserById(otherId);
 
@@ -166,5 +164,11 @@ public class UserService implements UserServiceInterface {
     private User getUserById(Integer id) {
         return userStorage.findById(id)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id=" + id + " не найден"));
+    }
+    private void checkUsersNotSame(Integer userId, Integer otherId) {
+        if (userId.equals(otherId)) {
+            log.warn("Попытка операции с самим собой: userId={}", userId);
+            throw new ValidationException("Нельзя выполнить операцию над самим собой");
+        }
     }
 }

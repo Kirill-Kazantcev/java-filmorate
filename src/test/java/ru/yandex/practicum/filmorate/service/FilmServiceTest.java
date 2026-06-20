@@ -132,7 +132,7 @@ class FilmServiceTest {
         FilmDto filmDto1 = new FilmDto(1, "Film 1", "Description 1", LocalDate.of(2020, 1, 1), 120);
         FilmDto filmDto2 = new FilmDto(2, "Film 2", "Description 2", LocalDate.of(2021, 2, 2), 130);
 
-        when(filmStorage.findAll()).thenReturn(List.of(film1, film2));
+        when(filmStorage.findPopular(2)).thenReturn(List.of(film1, film2));
         when(filmMapper.toDto(film1)).thenReturn(filmDto1);
         when(filmMapper.toDto(film2)).thenReturn(filmDto2);
 
@@ -148,7 +148,7 @@ class FilmServiceTest {
         FilmDto filmDto1 = new FilmDto(1, "Film 1", "Description 1", LocalDate.of(2020, 1, 1), 120);
         FilmDto filmDto2 = new FilmDto(2, "Film 2", "Description 2", LocalDate.of(2021, 2, 2), 130);
 
-        when(filmStorage.findAll()).thenReturn(List.of(film1, film2));
+        when(filmStorage.findPopular(10)).thenReturn(List.of(film1, film2));
         when(filmMapper.toDto(film1)).thenReturn(filmDto1);
         when(filmMapper.toDto(film2)).thenReturn(filmDto2);
 
@@ -159,7 +159,7 @@ class FilmServiceTest {
 
     @Test
     void getPopularFilms_ShouldReturnEmptyList_WhenNoFilms() {
-        when(filmStorage.findAll()).thenReturn(List.of());
+        when(filmStorage.findPopular(5)).thenReturn(List.of());
 
         List<FilmDto> popular = filmService.getPopularFilms(5);
 

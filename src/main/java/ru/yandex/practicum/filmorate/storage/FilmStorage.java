@@ -16,4 +16,6 @@ public interface FilmStorage {
     List<Film> findAll();
 
     void deleteById(Integer id);
+
+    List<Film> findPopular(int limit);
 }

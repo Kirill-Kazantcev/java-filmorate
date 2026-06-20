@@ -91,9 +91,8 @@ class UserServiceTest {
 
     @Test
     void addFriend_ShouldThrowValidationException_WhenAddingSelf() {
-        when(userStorage.findById(1)).thenReturn(Optional.of(user1));
-
         assertThrows(ValidationException.class, () -> userService.addFriend(1, 1));
+        verify(userStorage, never()).findById(any());
         verify(userStorage, never()).update(any(User.class));
     }
 
