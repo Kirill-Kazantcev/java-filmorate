@@ -5,11 +5,13 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.entity.Film;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -48,5 +50,20 @@ public class InMemoryFilmStorage implements FilmStorage {
     public void deleteById(Integer id) {
         films.remove(id);
         log.debug("Удален фильм: id={}", id);
+    }
+
+    @Override
+    public List<Film> findPopular(int limit) {
+        log.debug("Запрос популярных фильмов: limit={}", limit);
+
+        if (films.isEmpty()) {
+            log.debug("Нет фильмов для отображения");
+            return List.of();
+        }
+
+        return films.values().stream()
+                .sorted(Comparator.comparingInt((Film film) -> film.getLikes().size()).reversed())
+                .limit(limit)
+                .collect(Collectors.toList());
     }
 }
