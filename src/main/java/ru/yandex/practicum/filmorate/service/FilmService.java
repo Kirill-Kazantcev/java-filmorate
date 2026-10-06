@@ -65,33 +65,22 @@ public class FilmService implements FilmServiceInterface {
     public void addLike(Integer filmId, Integer userId) {
         log.debug("Добавление лайка: filmId={}, userId={}", filmId, userId);
 
-        Film film = getFilmById(filmId);
+        getFilmById(filmId);
         getUserById(userId);
 
-        boolean added = film.getLikes().add(userId);
-        if (added) {
-            filmStorage.update(film);
-            log.info("Пользователь {} поставил лайк фильму {}", userId, filmId);
-        } else {
-            log.debug("Пользователь {} уже поставил лайк фильму {}", userId, filmId);
-        }
+        filmStorage.addLike(filmId, userId);
+        log.info("Пользователь {} поставил лайк фильму {}", userId, filmId);
     }
 
     @Override
     public void removeLike(Integer filmId, Integer userId) {
         log.debug("Удаление лайка: filmId={}, userId={}", filmId, userId);
 
-        Film film = getFilmById(filmId);
+        getFilmById(filmId);
         getUserById(userId);
 
-        boolean removed = film.getLikes().remove(userId);
-        if (removed) {
-            filmStorage.update(film);
-            log.info("Пользователь {} удалил лайк у фильма {}", userId, filmId);
-        } else {
-            log.warn("Пользователь {} не ставил лайк фильму {}", userId, filmId);
-            throw new NotFoundException("Пользователь не ставил лайк этому фильму");
-        }
+        filmStorage.removeLike(filmId, userId);
+        log.info("Пользователь {} удалил лайк у фильма {}", userId, filmId);
     }
 
     @Override

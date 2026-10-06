@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Component
+@Component("inMemoryFilmStorage")
 @SuppressWarnings("unused")
 public class InMemoryFilmStorage implements FilmStorage {
 
@@ -65,5 +65,23 @@ public class InMemoryFilmStorage implements FilmStorage {
                 .sorted(Comparator.comparingInt((Film film) -> film.getLikes().size()).reversed())
                 .limit(limit)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void addLike(Integer filmId, Integer userId) {
+        Film film = films.get(filmId);
+        if (film != null) {
+            film.getLikes().add(userId);
+            log.debug("Лайк добавлен: filmId={}, userId={}", filmId, userId);
+        }
+    }
+
+    @Override
+    public void removeLike(Integer filmId, Integer userId) {
+        Film film = films.get(filmId);
+        if (film != null) {
+            film.getLikes().remove(userId);
+            log.debug("Лайк удалён: filmId={}, userId={}", filmId, userId);
+        }
     }
 }
