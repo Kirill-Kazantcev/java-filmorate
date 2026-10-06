@@ -3,9 +3,12 @@ package ru.yandex.practicum.filmorate.model.mapper;
 import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.dto.FilmDto;
 import ru.yandex.practicum.filmorate.model.entity.Film;
+import ru.yandex.practicum.filmorate.model.entity.Genre;
 
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Маппер для преобразования Film <-> FilmDto.
@@ -24,7 +27,7 @@ public class FilmMapper {
                 film.getReleaseDate(),
                 film.getDuration(),
                 film.getMpa(),
-                film.getGenres() == null ? Set.of() : new LinkedHashSet<>(film.getGenres())
+                sortedGenres(film.getGenres())
         );
     }
 
@@ -42,8 +45,18 @@ public class FilmMapper {
                 .build();
 
         if (filmDto.genres() != null) {
-            film.setGenres(new LinkedHashSet<>(filmDto.genres()));
+            film.setGenres(sortedGenres(filmDto.genres()));
         }
         return film;
+    }
+
+    private Set<Genre> sortedGenres(Set<Genre> source) {
+        if (source == null) {
+            return new LinkedHashSet<>();
+        }
+        return source.stream()
+                .sorted(Comparator.comparing(Genre::id,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 }
