@@ -11,7 +11,7 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.dto.UserDto;
 import ru.yandex.practicum.filmorate.model.entity.User;
 import ru.yandex.practicum.filmorate.model.mapper.UserMapper;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
 import java.util.HashSet;

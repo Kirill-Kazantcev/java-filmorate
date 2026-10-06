@@ -1,24 +1,23 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.dto.FilmDto;
+import ru.yandex.practicum.filmorate.model.dto.GenreDto;
 import ru.yandex.practicum.filmorate.model.entity.Film;
-import ru.yandex.practicum.filmorate.model.entity.Genre;
 import ru.yandex.practicum.filmorate.model.mapper.FilmMapper;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.GenreStorage;
-import ru.yandex.practicum.filmorate.storage.MpaStorage;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
+import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @SuppressWarnings("unused")
 public class FilmService implements FilmServiceInterface {
 
@@ -27,6 +26,19 @@ public class FilmService implements FilmServiceInterface {
     private final FilmMapper filmMapper;
     private final MpaStorage mpaStorage;
     private final GenreStorage genreStorage;
+
+    public FilmService(
+            @Qualifier("filmDbStorage") FilmStorage filmStorage,
+            @Qualifier("userDbStorage") UserStorage userStorage,
+            FilmMapper filmMapper,
+            MpaStorage mpaStorage,
+            GenreStorage genreStorage) {
+        this.filmStorage = filmStorage;
+        this.userStorage = userStorage;
+        this.filmMapper = filmMapper;
+        this.mpaStorage = mpaStorage;
+        this.genreStorage = genreStorage;
+    }
 
     @Override
     public FilmDto create(FilmDto filmDto) {
@@ -74,10 +86,8 @@ public class FilmService implements FilmServiceInterface {
     @Override
     public void addLike(Integer filmId, Integer userId) {
         log.debug("Добавление лайка: filmId={}, userId={}", filmId, userId);
-
         getFilmById(filmId);
         getUserById(userId);
-
         filmStorage.addLike(filmId, userId);
         log.info("Пользователь {} поставил лайк фильму {}", userId, filmId);
     }
@@ -85,10 +95,8 @@ public class FilmService implements FilmServiceInterface {
     @Override
     public void removeLike(Integer filmId, Integer userId) {
         log.debug("Удаление лайка: filmId={}, userId={}", filmId, userId);
-
         getFilmById(filmId);
         getUserById(userId);
-
         filmStorage.removeLike(filmId, userId);
         log.info("Пользователь {} удалил лайк у фильма {}", userId, filmId);
     }
@@ -97,7 +105,6 @@ public class FilmService implements FilmServiceInterface {
     public List<FilmDto> getPopularFilms(Integer count) {
         int limit = (count != null && count > 0) ? count : 10;
         log.debug("Запрос популярных фильмов: count={}", limit);
-
         return filmStorage.findPopular(limit).stream()
                 .map(filmMapper::toDto)
                 .toList();
@@ -109,9 +116,8 @@ public class FilmService implements FilmServiceInterface {
                     .orElseThrow(() -> new NotFoundException(
                             "Рейтинг MPA с id=" + filmDto.mpa().id() + " не найден"));
         }
-
         if (filmDto.genres() != null) {
-            for (Genre genre : filmDto.genres()) {
+            for (GenreDto genre : filmDto.genres()) {
                 if (genre.id() != null) {
                     genreStorage.findById(genre.id())
                             .orElseThrow(() -> new NotFoundException(

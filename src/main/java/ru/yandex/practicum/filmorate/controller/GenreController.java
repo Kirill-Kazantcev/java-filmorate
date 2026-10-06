@@ -7,8 +7,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.model.entity.Genre;
-import ru.yandex.practicum.filmorate.storage.GenreStorage;
+import ru.yandex.practicum.filmorate.model.dto.GenreDto;
+import ru.yandex.practicum.filmorate.model.mapper.GenreMapper;
+import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 
 import java.util.List;
 
@@ -20,17 +21,21 @@ import java.util.List;
 public class GenreController {
 
     private final GenreStorage genreStorage;
+    private final GenreMapper genreMapper;
 
     @GetMapping
-    public List<Genre> findAll() {
+    public List<GenreDto> findAll() {
         log.info("Запрос на получение всех жанров");
-        return genreStorage.findAll();
+        return genreStorage.findAll().stream()
+                .map(genreMapper::toDto)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public Genre findById(@PathVariable Integer id) {
+    public GenreDto findById(@PathVariable Integer id) {
         log.info("Запрос на получение жанра: id={}", id);
         return genreStorage.findById(id)
+                .map(genreMapper::toDto)
                 .orElseThrow(() -> new NotFoundException("Жанр с id=" + id + " не найден"));
     }
 }

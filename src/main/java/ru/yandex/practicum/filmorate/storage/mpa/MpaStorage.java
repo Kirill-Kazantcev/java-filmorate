@@ -1,4 +1,4 @@
-package ru.yandex.practicum.filmorate.storage;
+package ru.yandex.practicum.filmorate.storage.mpa;
 
 import ru.yandex.practicum.filmorate.model.entity.Mpa;
 

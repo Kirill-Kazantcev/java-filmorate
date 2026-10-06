@@ -7,8 +7,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.model.entity.Mpa;
-import ru.yandex.practicum.filmorate.storage.MpaStorage;
+import ru.yandex.practicum.filmorate.model.dto.MpaDto;
+import ru.yandex.practicum.filmorate.model.mapper.MpaMapper;
+import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 
 import java.util.List;
 
@@ -20,17 +21,21 @@ import java.util.List;
 public class MpaController {
 
     private final MpaStorage mpaStorage;
+    private final MpaMapper mpaMapper;
 
     @GetMapping
-    public List<Mpa> findAll() {
+    public List<MpaDto> findAll() {
         log.info("Запрос на получение всех рейтингов MPA");
-        return mpaStorage.findAll();
+        return mpaStorage.findAll().stream()
+                .map(mpaMapper::toDto)
+                .toList();
     }
 
     @GetMapping("/{id}")
-    public Mpa findById(@PathVariable Integer id) {
+    public MpaDto findById(@PathVariable Integer id) {
         log.info("Запрос на получение рейтинга MPA: id={}", id);
         return mpaStorage.findById(id)
+                .map(mpaMapper::toDto)
                 .orElseThrow(() -> new NotFoundException("Рейтинг MPA с id=" + id + " не найден"));
     }
 }

@@ -1,7 +1,6 @@
-package ru.yandex.practicum.filmorate.storage;
+package ru.yandex.practicum.filmorate.storage.user;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Primary;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -23,11 +22,35 @@ import java.util.Optional;
  * user_id добавил friend_id в свой список.
  */
 @Repository("userDbStorage")
-@Primary
 @RequiredArgsConstructor
 public class UserDbStorage implements UserStorage {
 
     private final JdbcTemplate jdbc;
+
+    private static final String INSERT_USER =
+            "INSERT INTO users (email, login, name, birthday) VALUES (?, ?, ?, ?)";
+    private static final String UPDATE_USER =
+            "UPDATE users SET email=?, login=?, name=?, birthday=? WHERE id=?";
+    private static final String SELECT_USER_BY_ID =
+            "SELECT * FROM users WHERE id = ?";
+    private static final String SELECT_ALL_USERS =
+            "SELECT * FROM users ORDER BY id";
+    private static final String DELETE_USER =
+            "DELETE FROM users WHERE id = ?";
+    private static final String MERGE_FRIENDSHIP =
+            "MERGE INTO friendships (user_id, friend_id) KEY(user_id, friend_id) VALUES (?, ?)";
+    private static final String DELETE_FRIENDSHIP =
+            "DELETE FROM friendships WHERE user_id = ? AND friend_id = ?";
+    private static final String SELECT_FRIENDS =
+            "SELECT u.* FROM users u " +
+                    "JOIN friendships f ON u.id = f.friend_id " +
+                    "WHERE f.user_id = ? ORDER BY u.id";
+    private static final String SELECT_COMMON_FRIENDS =
+            "SELECT u.* FROM users u WHERE u.id IN ( " +
+                    "    SELECT friend_id FROM friendships WHERE user_id = ? " +
+                    "    INTERSECT " +
+                    "    SELECT friend_id FROM friendships WHERE user_id = ? " +
+                    ") ORDER BY u.id";
 
     private static final RowMapper<User> MAPPER = (rs, rowNum) -> User.builder()
             .id(rs.getInt("id"))
@@ -41,11 +64,8 @@ public class UserDbStorage implements UserStorage {
     @Override
     public User save(User user) {
         KeyHolder keyHolder = new GeneratedKeyHolder();
-
         jdbc.update(con -> {
-            PreparedStatement ps = con.prepareStatement(
-                    "INSERT INTO users (email, login, name, birthday) " +
-                            "VALUES (?, ?, ?, ?)",
+            PreparedStatement ps = con.prepareStatement(INSERT_USER,
                     Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, user.getEmail());
             ps.setString(2, user.getLogin());
@@ -54,15 +74,13 @@ public class UserDbStorage implements UserStorage {
                     ? Date.valueOf(user.getBirthday()) : null);
             return ps;
         }, keyHolder);
-
         user.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
         return user;
     }
 
     @Override
     public User update(User user) {
-        jdbc.update(
-                "UPDATE users SET email=?, login=?, name=?, birthday=? WHERE id=?",
+        jdbc.update(UPDATE_USER,
                 user.getEmail(),
                 user.getLogin(),
                 user.getName(),
@@ -75,7 +93,7 @@ public class UserDbStorage implements UserStorage {
     public Optional<User> findById(Integer id) {
         try {
             return Optional.ofNullable(
-                    jdbc.queryForObject("SELECT * FROM users WHERE id = ?", MAPPER, id));
+                    jdbc.queryForObject(SELECT_USER_BY_ID, MAPPER, id));
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
@@ -83,46 +101,31 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public List<User> findAll() {
-        return jdbc.query("SELECT * FROM users ORDER BY id", MAPPER);
+        return jdbc.query(SELECT_ALL_USERS, MAPPER);
     }
 
     @Override
     public void deleteById(Integer id) {
-        jdbc.update("DELETE FROM users WHERE id = ?", id);
+        jdbc.update(DELETE_USER, id);
     }
 
     @Override
     public void addFriend(Integer userId, Integer friendId) {
-        jdbc.update("MERGE INTO friendships (user_id, friend_id) " +
-                        "KEY(user_id, friend_id) VALUES (?, ?)",
-                userId, friendId);
+        jdbc.update(MERGE_FRIENDSHIP, userId, friendId);
     }
 
     @Override
     public void removeFriend(Integer userId, Integer friendId) {
-        jdbc.update("DELETE FROM friendships WHERE user_id = ? AND friend_id = ?",
-                userId, friendId);
+        jdbc.update(DELETE_FRIENDSHIP, userId, friendId);
     }
 
     @Override
     public List<User> findFriends(Integer userId) {
-        return jdbc.query(
-                "SELECT u.* FROM users u " +
-                        "JOIN friendships f ON u.id = f.friend_id " +
-                        "WHERE f.user_id = ? " +
-                        "ORDER BY u.id",
-                MAPPER, userId);
+        return jdbc.query(SELECT_FRIENDS, MAPPER, userId);
     }
 
     @Override
     public List<User> findCommonFriends(Integer userId, Integer otherId) {
-        return jdbc.query(
-                "SELECT u.* FROM users u " +
-                        "WHERE u.id IN ( " +
-                        "    SELECT friend_id FROM friendships WHERE user_id = ? " +
-                        "    INTERSECT " +
-                        "    SELECT friend_id FROM friendships WHERE user_id = ? " +
-                        ") ORDER BY u.id",
-                MAPPER, userId, otherId);
+        return jdbc.query(SELECT_COMMON_FRIENDS, MAPPER, userId, otherId);
     }
 }

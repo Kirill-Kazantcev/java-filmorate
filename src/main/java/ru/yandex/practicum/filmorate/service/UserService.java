@@ -1,25 +1,31 @@
 package ru.yandex.practicum.filmorate.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.dto.UserDto;
 import ru.yandex.practicum.filmorate.model.entity.User;
 import ru.yandex.practicum.filmorate.model.mapper.UserMapper;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 @SuppressWarnings("unused")
 public class UserService implements UserServiceInterface {
 
     private final UserStorage userStorage;
     private final UserMapper userMapper;
+
+    public UserService(
+            @Qualifier("userDbStorage") UserStorage userStorage,
+            UserMapper userMapper) {
+        this.userStorage = userStorage;
+        this.userMapper = userMapper;
+    }
 
     @Override
     public UserDto create(UserDto userDto) {
@@ -67,11 +73,9 @@ public class UserService implements UserServiceInterface {
     @Override
     public void addFriend(Integer userId, Integer friendId) {
         log.debug("Добавление в друзья: userId={}, friendId={}", userId, friendId);
-
         checkUsersNotSame(userId, friendId);
         getUserById(userId);
         getUserById(friendId);
-
         userStorage.addFriend(userId, friendId);
         log.info("Пользователь {} добавил в друзья {}", userId, friendId);
     }
@@ -79,11 +83,9 @@ public class UserService implements UserServiceInterface {
     @Override
     public void removeFriend(Integer userId, Integer friendId) {
         log.debug("Удаление из друзей: userId={}, friendId={}", userId, friendId);
-
         checkUsersNotSame(userId, friendId);
         getUserById(userId);
         getUserById(friendId);
-
         userStorage.removeFriend(userId, friendId);
         log.info("Пользователь {} удалил из друзей {}", userId, friendId);
     }
@@ -92,7 +94,6 @@ public class UserService implements UserServiceInterface {
     public List<UserDto> getFriends(Integer userId) {
         log.debug("Получение списка друзей: userId={}", userId);
         getUserById(userId);
-
         return userStorage.findFriends(userId).stream()
                 .map(userMapper::toDto)
                 .toList();
@@ -101,11 +102,9 @@ public class UserService implements UserServiceInterface {
     @Override
     public List<UserDto> getCommonFriends(Integer userId, Integer otherId) {
         log.debug("Получение общих друзей: userId={}, otherId={}", userId, otherId);
-
         checkUsersNotSame(userId, otherId);
         getUserById(userId);
         getUserById(otherId);
-
         return userStorage.findCommonFriends(userId, otherId).stream()
                 .map(userMapper::toDto)
                 .toList();

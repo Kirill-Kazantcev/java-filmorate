@@ -4,8 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
-import ru.yandex.practicum.filmorate.model.entity.Genre;
-import ru.yandex.practicum.filmorate.model.entity.Mpa;
 import ru.yandex.practicum.filmorate.validator.ReleaseDate;
 
 import java.time.LocalDate;
@@ -31,9 +29,9 @@ public record FilmDto(
         @Positive(message = "Продолжительность должна быть положительным числом")
         Integer duration,
 
-        Mpa mpa,
+        MpaDto mpa,
 
-        Set<Genre> genres
+        Set<GenreDto> genres
 ) {
 
     public FilmDto(Integer id, String name, String description,
