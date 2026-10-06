@@ -8,13 +8,18 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.dto.FilmDto;
 import ru.yandex.practicum.filmorate.model.dto.GenreDto;
 import ru.yandex.practicum.filmorate.model.entity.Film;
+import ru.yandex.practicum.filmorate.model.entity.Genre;
 import ru.yandex.practicum.filmorate.model.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
 import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -116,13 +121,26 @@ public class FilmService implements FilmServiceInterface {
                     .orElseThrow(() -> new NotFoundException(
                             "Рейтинг MPA с id=" + filmDto.mpa().id() + " не найден"));
         }
-        if (filmDto.genres() != null) {
-            for (GenreDto genre : filmDto.genres()) {
-                if (genre.id() != null) {
-                    genreStorage.findById(genre.id())
-                            .orElseThrow(() -> new NotFoundException(
-                                    "Жанр с id=" + genre.id() + " не найден"));
-                }
+
+        if (filmDto.genres() != null && !filmDto.genres().isEmpty()) {
+            Set<Integer> requestedIds = filmDto.genres().stream()
+                    .map(GenreDto::id)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            if (requestedIds.isEmpty()) {
+                return;
+            }
+
+            Set<Integer> existingIds = genreStorage.findAll().stream()
+                    .map(Genre::id)
+                    .collect(Collectors.toSet());
+
+            Set<Integer> missing = new HashSet<>(requestedIds);
+            missing.removeAll(existingIds);
+
+            if (!missing.isEmpty()) {
+                throw new NotFoundException("Жанры с id " + missing + " не найдены");
             }
         }
     }

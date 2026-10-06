@@ -14,9 +14,12 @@ import ru.yandex.practicum.filmorate.model.entity.Mpa;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -84,6 +87,14 @@ public class FilmDbStorage implements FilmStorage {
 
     private static final String SELECT_FILM_LIKES =
             "SELECT user_id FROM likes WHERE film_id = ?";
+
+    private static final String SELECT_GENRES_BY_FILM_IDS =
+            "SELECT fg.film_id, g.id, g.name FROM genres g " +
+                    "JOIN film_genres fg ON g.id = fg.genre_id " +
+                    "WHERE fg.film_id IN (%s) ORDER BY fg.film_id, g.id";
+
+    private static final String SELECT_LIKES_BY_FILM_IDS =
+            "SELECT film_id, user_id FROM likes WHERE film_id IN (%s)";
 
     private static final RowMapper<Film> MAPPER = (rs, rowNum) -> {
         Film film = Film.builder()
@@ -153,7 +164,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> findAll() {
         List<Film> films = jdbc.query(SELECT_ALL_FILMS, MAPPER);
-        films.forEach(this::enrichFilm);
+        enrichAllFilms(films);
         return films;
     }
 
@@ -165,7 +176,7 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> findPopular(int limit) {
         List<Film> films = jdbc.query(SELECT_POPULAR_FILMS, MAPPER, limit);
-        films.forEach(this::enrichFilm);
+        enrichAllFilms(films);
         return films;
     }
 
@@ -179,18 +190,49 @@ public class FilmDbStorage implements FilmStorage {
         jdbc.update(DELETE_LIKE, filmId, userId);
     }
 
-    private void enrichFilm(Film film) {
-        film.setGenres(loadGenres(film.getId()));
-        film.setLikes(loadLikes(film.getId()));
+    private void enrichAllFilms(List<Film> films) {
+        if (films.isEmpty()) {
+            return;
+        }
+        List<Integer> ids = films.stream().map(Film::getId).toList();
+        String placeholders = String.join(",",
+                Collections.nCopies(ids.size(), "?"));
+        Object[] args = ids.toArray();
+
+        Map<Integer, Set<Genre>> genresByFilm = new HashMap<>();
+        jdbc.query(String.format(SELECT_GENRES_BY_FILM_IDS, placeholders),
+                rs -> {
+                    int filmId = rs.getInt("film_id");
+                    genresByFilm
+                            .computeIfAbsent(filmId, k -> new LinkedHashSet<>())
+                            .add(new Genre(rs.getInt("id"), rs.getString("name")));
+                },
+                args);
+
+        Map<Integer, Set<Integer>> likesByFilm = new HashMap<>();
+        jdbc.query(String.format(SELECT_LIKES_BY_FILM_IDS, placeholders),
+                rs -> {
+                    int filmId = rs.getInt("film_id");
+                    likesByFilm
+                            .computeIfAbsent(filmId, k -> new HashSet<>())
+                            .add(rs.getInt("user_id"));
+                },
+                args);
+
+        for (Film film : films) {
+            film.setGenres(genresByFilm.getOrDefault(film.getId(), new LinkedHashSet<>()));
+            film.setLikes(likesByFilm.getOrDefault(film.getId(), new HashSet<>()));
+        }
     }
 
     private void saveGenres(Film film) {
         if (film.getGenres() == null || film.getGenres().isEmpty()) {
             return;
         }
-        for (Genre genre : film.getGenres()) {
-            jdbc.update(MERGE_FILM_GENRE, film.getId(), genre.id());
-        }
+        List<Object[]> batchArgs = film.getGenres().stream()
+                .map(genre -> new Object[]{film.getId(), genre.id()})
+                .toList();
+        jdbc.batchUpdate(MERGE_FILM_GENRE, batchArgs);
     }
 
     private Set<Genre> loadGenres(Integer filmId) {
