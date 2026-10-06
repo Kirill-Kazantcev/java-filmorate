@@ -143,7 +143,7 @@ class UserServiceTest {
         List<UserDto> commonFriends = userService.getCommonFriends(1, 2);
 
         assertEquals(1, commonFriends.size());
-        assertEquals(3, commonFriends.get(0).id());
+        assertEquals(3, commonFriends.getFirst().id());
     }
 
     @Test

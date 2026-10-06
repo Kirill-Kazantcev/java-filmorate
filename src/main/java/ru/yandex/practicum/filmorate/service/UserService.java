@@ -11,7 +11,6 @@ import ru.yandex.practicum.filmorate.model.mapper.UserMapper;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -34,6 +33,9 @@ public class UserService implements UserServiceInterface {
     @Override
     public UserDto update(UserDto userDto) {
         log.debug("Обновление пользователя: id={}", userDto.id());
+        if (userDto.id() == null) {
+            throw new ValidationException("id пользователя обязателен для обновления");
+        }
         getUserById(userDto.id());
         User user = userMapper.toEntity(userDto);
         normalizeName(user);
@@ -52,7 +54,7 @@ public class UserService implements UserServiceInterface {
         log.debug("Запрос всех пользователей");
         return userStorage.findAll().stream()
                 .map(userMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -89,11 +91,11 @@ public class UserService implements UserServiceInterface {
     @Override
     public List<UserDto> getFriends(Integer userId) {
         log.debug("Получение списка друзей: userId={}", userId);
-        getUserById(userId); // проверка существования
+        getUserById(userId);
 
         return userStorage.findFriends(userId).stream()
                 .map(userMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -106,7 +108,7 @@ public class UserService implements UserServiceInterface {
 
         return userStorage.findCommonFriends(userId, otherId).stream()
                 .map(userMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void normalizeName(User user) {

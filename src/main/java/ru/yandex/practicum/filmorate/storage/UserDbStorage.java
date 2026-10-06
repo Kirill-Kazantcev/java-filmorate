@@ -1,19 +1,20 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
-import org.springframework.context.annotation.Primary;
 import ru.yandex.practicum.filmorate.model.entity.User;
 
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -54,7 +55,7 @@ public class UserDbStorage implements UserStorage {
             return ps;
         }, keyHolder);
 
-        user.setId(keyHolder.getKey().intValue());
+        user.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
         return user;
     }
 
@@ -92,13 +93,9 @@ public class UserDbStorage implements UserStorage {
 
     @Override
     public void addFriend(Integer userId, Integer friendId) {
-        Integer exists = jdbc.queryForObject(
-                "SELECT COUNT(*) FROM friendships WHERE user_id = ? AND friend_id = ?",
-                Integer.class, userId, friendId);
-        if (exists == null || exists == 0) {
-            jdbc.update("INSERT INTO friendships (user_id, friend_id) VALUES (?, ?)",
-                    userId, friendId);
-        }
+        jdbc.update("MERGE INTO friendships (user_id, friend_id) " +
+                        "KEY(user_id, friend_id) VALUES (?, ?)",
+                userId, friendId);
     }
 
     @Override

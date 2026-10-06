@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
+import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.dto.FilmDto;
 import ru.yandex.practicum.filmorate.model.entity.Film;
 import ru.yandex.practicum.filmorate.model.entity.Genre;
@@ -14,7 +15,6 @@ import ru.yandex.practicum.filmorate.storage.MpaStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -40,6 +40,9 @@ public class FilmService implements FilmServiceInterface {
     @Override
     public FilmDto update(FilmDto filmDto) {
         log.debug("Обновление фильма: id={}", filmDto.id());
+        if (filmDto.id() == null) {
+            throw new ValidationException("id фильма обязателен для обновления");
+        }
         getFilmById(filmDto.id());
         validateMpaAndGenres(filmDto);
         Film film = filmMapper.toEntity(filmDto);
@@ -58,7 +61,7 @@ public class FilmService implements FilmServiceInterface {
         log.debug("Запрос всех фильмов");
         return filmStorage.findAll().stream()
                 .map(filmMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -97,7 +100,7 @@ public class FilmService implements FilmServiceInterface {
 
         return filmStorage.findPopular(limit).stream()
                 .map(filmMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void validateMpaAndGenres(FilmDto filmDto) {

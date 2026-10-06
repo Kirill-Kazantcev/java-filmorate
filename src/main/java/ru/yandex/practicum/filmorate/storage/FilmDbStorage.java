@@ -1,13 +1,13 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
-import org.springframework.context.annotation.Primary;
 import ru.yandex.practicum.filmorate.model.entity.Film;
 import ru.yandex.practicum.filmorate.model.entity.Genre;
 import ru.yandex.practicum.filmorate.model.entity.Mpa;
@@ -18,6 +18,7 @@ import java.sql.Statement;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -39,7 +40,7 @@ public class FilmDbStorage implements FilmStorage {
             LEFT JOIN mpa m ON f.mpa_id = m.id
             """;
 
-    private final RowMapper<Film> filmRowMapper = (rs, rowNum) -> {
+    private static final RowMapper<Film> MAPPER = (rs, rowNum) -> {
         Film film = Film.builder()
                 .id(rs.getInt("film_id"))
                 .name(rs.getString("film_name"))
@@ -53,7 +54,6 @@ public class FilmDbStorage implements FilmStorage {
         if (!rs.wasNull()) {
             film.setMpa(new Mpa(mpaId, rs.getString("mpa_name")));
         }
-
         return film;
     };
 
@@ -79,7 +79,7 @@ public class FilmDbStorage implements FilmStorage {
             return ps;
         }, keyHolder);
 
-        film.setId(keyHolder.getKey().intValue());
+        film.setId(Objects.requireNonNull(keyHolder.getKey()).intValue());
         saveGenres(film);
         return film;
     }
@@ -106,7 +106,8 @@ public class FilmDbStorage implements FilmStorage {
             return;
         }
         for (Genre genre : film.getGenres()) {
-            jdbc.update("INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)",
+            jdbc.update("MERGE INTO film_genres (film_id, genre_id) " +
+                            "KEY(film_id, genre_id) VALUES (?, ?)",
                     film.getId(), genre.id());
         }
     }
@@ -115,12 +116,10 @@ public class FilmDbStorage implements FilmStorage {
     public Optional<Film> findById(Integer id) {
         try {
             Film film = jdbc.queryForObject(
-                    BASE_SELECT + " WHERE f.id = ?", filmRowMapper, id);
-            if (film != null) {
-                film.setGenres(loadGenres(film.getId()));
-                film.setLikes(loadLikes(film.getId()));
-            }
-            return Optional.ofNullable(film);
+                    BASE_SELECT + " WHERE f.id = ?", MAPPER, id);
+            film.setGenres(loadGenres(film.getId()));
+            film.setLikes(loadLikes(film.getId()));
+            return Optional.of(film);
         } catch (EmptyResultDataAccessException e) {
             return Optional.empty();
         }
@@ -128,7 +127,7 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public List<Film> findAll() {
-        List<Film> films = jdbc.query(BASE_SELECT + " ORDER BY f.id", filmRowMapper);
+        List<Film> films = jdbc.query(BASE_SELECT + " ORDER BY f.id", MAPPER);
         films.forEach(f -> {
             f.setGenres(loadGenres(f.getId()));
             f.setLikes(loadLikes(f.getId()));
@@ -144,14 +143,16 @@ public class FilmDbStorage implements FilmStorage {
     @Override
     public List<Film> findPopular(int limit) {
         String sql = BASE_SELECT + """
-                LEFT JOIN likes l ON f.id = l.film_id
-                GROUP BY f.id, f.name, f.description, f.release_date, f.duration,
-                         m.id, m.name
-                ORDER BY COUNT(l.user_id) DESC, f.id ASC
+                LEFT JOIN (
+                    SELECT film_id, COUNT(*) AS like_count
+                    FROM likes
+                    GROUP BY film_id
+                ) lc ON f.id = lc.film_id
+                ORDER BY COALESCE(lc.like_count, 0) DESC, f.id ASC
                 LIMIT ?
                 """;
 
-        List<Film> films = jdbc.query(sql, filmRowMapper, limit);
+        List<Film> films = jdbc.query(sql, MAPPER, limit);
         films.forEach(f -> {
             f.setGenres(loadGenres(f.getId()));
             f.setLikes(loadLikes(f.getId()));
@@ -161,7 +162,8 @@ public class FilmDbStorage implements FilmStorage {
 
     @Override
     public void addLike(Integer filmId, Integer userId) {
-        jdbc.update("INSERT INTO likes (film_id, user_id) VALUES (?, ?)", filmId, userId);
+        jdbc.update("MERGE INTO likes (film_id, user_id) KEY(film_id, user_id) VALUES (?, ?)",
+                filmId, userId);
     }
 
     @Override

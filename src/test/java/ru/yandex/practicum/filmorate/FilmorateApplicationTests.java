@@ -5,13 +5,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 class FilmorateApplicationTests {
 
+    private final JdbcTemplate jdbcTemplate;
+
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    FilmorateApplicationTests(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     @Test
     void contextLoads() {
@@ -24,7 +30,7 @@ class FilmorateApplicationTests {
         assertThat(jdbcTemplate.queryForObject("SELECT COUNT(*) FROM genres", Integer.class))
                 .isEqualTo(6);
 
-        var tables = jdbcTemplate.queryForList(
+        List<String> tables = jdbcTemplate.queryForList(
                 "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES " +
                         "WHERE TABLE_SCHEMA = 'PUBLIC' ORDER BY TABLE_NAME",
                 String.class);
