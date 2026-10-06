@@ -44,3 +44,6 @@ build/
 
 *.db
 db/*
+
+.github/postman/sprint.json
+.github/postman/
