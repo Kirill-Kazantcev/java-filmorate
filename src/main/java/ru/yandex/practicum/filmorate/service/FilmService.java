@@ -6,8 +6,11 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.dto.FilmDto;
 import ru.yandex.practicum.filmorate.model.entity.Film;
+import ru.yandex.practicum.filmorate.model.entity.Genre;
 import ru.yandex.practicum.filmorate.model.mapper.FilmMapper;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.GenreStorage;
+import ru.yandex.practicum.filmorate.storage.MpaStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.util.List;
@@ -22,10 +25,13 @@ public class FilmService implements FilmServiceInterface {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
     private final FilmMapper filmMapper;
+    private final MpaStorage mpaStorage;
+    private final GenreStorage genreStorage;
 
     @Override
     public FilmDto create(FilmDto filmDto) {
         log.debug("Создание фильма: {}", filmDto.name());
+        validateMpaAndGenres(filmDto);
         Film film = filmMapper.toEntity(filmDto);
         Film saved = filmStorage.save(film);
         return filmMapper.toDto(saved);
@@ -35,6 +41,7 @@ public class FilmService implements FilmServiceInterface {
     public FilmDto update(FilmDto filmDto) {
         log.debug("Обновление фильма: id={}", filmDto.id());
         getFilmById(filmDto.id());
+        validateMpaAndGenres(filmDto);
         Film film = filmMapper.toEntity(filmDto);
         Film updated = filmStorage.update(film);
         return filmMapper.toDto(updated);
@@ -91,6 +98,24 @@ public class FilmService implements FilmServiceInterface {
         return filmStorage.findPopular(limit).stream()
                 .map(filmMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    private void validateMpaAndGenres(FilmDto filmDto) {
+        if (filmDto.mpa() != null && filmDto.mpa().id() != null) {
+            mpaStorage.findById(filmDto.mpa().id())
+                    .orElseThrow(() -> new NotFoundException(
+                            "Рейтинг MPA с id=" + filmDto.mpa().id() + " не найден"));
+        }
+
+        if (filmDto.genres() != null) {
+            for (Genre genre : filmDto.genres()) {
+                if (genre.id() != null) {
+                    genreStorage.findById(genre.id())
+                            .orElseThrow(() -> new NotFoundException(
+                                    "Жанр с id=" + genre.id() + " не найден"));
+                }
+            }
+        }
     }
 
     private Film getFilmById(Integer id) {
