@@ -1,4 +1,6 @@
 package ru.yandex.practicum.filmorate.model.entity;
 
-public class Genre {
-}
+/**
+ * Жанр фильма.
+ */
+public record Genre(Integer id, String name) {}

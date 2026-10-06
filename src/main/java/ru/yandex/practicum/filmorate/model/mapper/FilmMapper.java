@@ -4,6 +4,9 @@ import org.springframework.stereotype.Component;
 import ru.yandex.practicum.filmorate.model.dto.FilmDto;
 import ru.yandex.practicum.filmorate.model.entity.Film;
 
+import java.util.LinkedHashSet;
+import java.util.Set;
+
 /**
  * Маппер для преобразования Film <-> FilmDto.
  */
@@ -19,7 +22,9 @@ public class FilmMapper {
                 film.getName(),
                 film.getDescription(),
                 film.getReleaseDate(),
-                film.getDuration()
+                film.getDuration(),
+                film.getMpa(),
+                film.getGenres() == null ? Set.of() : new LinkedHashSet<>(film.getGenres())
         );
     }
 
@@ -27,12 +32,18 @@ public class FilmMapper {
         if (filmDto == null) {
             return null;
         }
-        return Film.builder()
+        Film film = Film.builder()
                 .id(filmDto.id())
                 .name(filmDto.name())
                 .description(filmDto.description())
                 .releaseDate(filmDto.releaseDate())
                 .duration(filmDto.duration())
+                .mpa(filmDto.mpa())
                 .build();
+
+        if (filmDto.genres() != null) {
+            film.setGenres(new LinkedHashSet<>(filmDto.genres()));
+        }
+        return film;
     }
 }

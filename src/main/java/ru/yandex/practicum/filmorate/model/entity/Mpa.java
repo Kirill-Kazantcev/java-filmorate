@@ -1,4 +1,6 @@
 package ru.yandex.practicum.filmorate.model.entity;
 
-public class Mpa {
-}
+/**
+ * Рейтинг MPA
+ */
+public record Mpa(Integer id, String name) {}
