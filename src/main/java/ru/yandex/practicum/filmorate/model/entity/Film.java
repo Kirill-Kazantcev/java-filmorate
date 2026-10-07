@@ -8,6 +8,7 @@ import ru.yandex.practicum.filmorate.validator.ReleaseDate;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -24,6 +25,10 @@ public class Film {
     @ReleaseDate
     private LocalDate releaseDate;
     private Integer duration;
+    private Mpa mpa;
+
+    @Builder.Default
+    private Set<Genre> genres = new LinkedHashSet<>();
 
     @Builder.Default
     private Set<Integer> likes = new HashSet<>();

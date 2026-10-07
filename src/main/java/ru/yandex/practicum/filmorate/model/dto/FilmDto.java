@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 import ru.yandex.practicum.filmorate.validator.ReleaseDate;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 /**
  * DTO для передачи данных о фильме через API.
@@ -26,5 +27,15 @@ public record FilmDto(
 
         @NotNull(message = "Продолжительность обязательна")
         @Positive(message = "Продолжительность должна быть положительным числом")
-        Integer duration
-) {}
+        Integer duration,
+
+        MpaDto mpa,
+
+        Set<GenreDto> genres
+) {
+
+    public FilmDto(Integer id, String name, String description,
+                   LocalDate releaseDate, Integer duration) {
+        this(id, name, description, releaseDate, duration, null, Set.of());
+    }
+}

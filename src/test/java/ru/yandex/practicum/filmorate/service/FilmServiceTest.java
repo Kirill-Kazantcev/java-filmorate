@@ -11,8 +11,10 @@ import ru.yandex.practicum.filmorate.model.dto.FilmDto;
 import ru.yandex.practicum.filmorate.model.entity.Film;
 import ru.yandex.practicum.filmorate.model.entity.User;
 import ru.yandex.practicum.filmorate.model.mapper.FilmMapper;
-import ru.yandex.practicum.filmorate.storage.FilmStorage;
-import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
+import ru.yandex.practicum.filmorate.storage.genre.GenreStorage;
+import ru.yandex.practicum.filmorate.storage.mpa.MpaStorage;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -21,9 +23,11 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@SuppressWarnings("unused")
 class FilmServiceTest {
 
     @Mock
@@ -34,6 +38,12 @@ class FilmServiceTest {
 
     @Mock
     private FilmMapper filmMapper;
+
+    @Mock
+    private MpaStorage mpaStorage;
+
+    @Mock
+    private GenreStorage genreStorage;
 
     @InjectMocks
     private FilmService filmService;
@@ -73,15 +83,14 @@ class FilmServiceTest {
     }
 
     @Test
-    void addLike_ShouldAddLikeToFilm() {
+    void addLike_ShouldDelegateToStorage() {
         when(filmStorage.findById(1)).thenReturn(Optional.of(film1));
         when(userStorage.findById(1)).thenReturn(Optional.of(user));
-        when(filmStorage.update(any(Film.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         filmService.addLike(1, 1);
 
-        assertTrue(film1.getLikes().contains(1));
-        verify(filmStorage, times(1)).update(film1);
+        verify(filmStorage, times(1)).addLike(1, 1);
+        verify(filmStorage, never()).update(any(Film.class));
     }
 
     @Test
@@ -89,7 +98,7 @@ class FilmServiceTest {
         when(filmStorage.findById(1)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> filmService.addLike(1, 1));
-        verify(filmStorage, never()).update(any(Film.class));
+        verify(filmStorage, never()).addLike(anyInt(), anyInt());
     }
 
     @Test
@@ -98,21 +107,18 @@ class FilmServiceTest {
         when(userStorage.findById(1)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> filmService.addLike(1, 1));
-        verify(filmStorage, never()).update(any(Film.class));
+        verify(filmStorage, never()).addLike(anyInt(), anyInt());
     }
 
     @Test
-    void removeLike_ShouldRemoveLikeFromFilm() {
-        film1.getLikes().add(1);
-
+    void removeLike_ShouldDelegateToStorage() {
         when(filmStorage.findById(1)).thenReturn(Optional.of(film1));
         when(userStorage.findById(1)).thenReturn(Optional.of(user));
-        when(filmStorage.update(any(Film.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         filmService.removeLike(1, 1);
 
-        assertFalse(film1.getLikes().contains(1));
-        verify(filmStorage, times(1)).update(film1);
+        verify(filmStorage, times(1)).removeLike(1, 1);
+        verify(filmStorage, never()).update(any(Film.class));
     }
 
     @Test
@@ -120,17 +126,15 @@ class FilmServiceTest {
         when(filmStorage.findById(1)).thenReturn(Optional.empty());
 
         assertThrows(NotFoundException.class, () -> filmService.removeLike(1, 1));
-        verify(filmStorage, never()).update(any(Film.class));
+        verify(filmStorage, never()).removeLike(anyInt(), anyInt());
     }
 
     @Test
     void getPopularFilms_ShouldReturnFilmsSortedByLikes() {
-        film1.getLikes().add(1);
-        film1.getLikes().add(2);
-        film2.getLikes().add(1);
-
-        FilmDto filmDto1 = new FilmDto(1, "Film 1", "Description 1", LocalDate.of(2020, 1, 1), 120);
-        FilmDto filmDto2 = new FilmDto(2, "Film 2", "Description 2", LocalDate.of(2021, 2, 2), 130);
+        FilmDto filmDto1 = new FilmDto(1, "Film 1", "Description 1",
+                LocalDate.of(2020, 1, 1), 120);
+        FilmDto filmDto2 = new FilmDto(2, "Film 2", "Description 2",
+                LocalDate.of(2021, 2, 2), 130);
 
         when(filmStorage.findPopular(2)).thenReturn(List.of(film1, film2));
         when(filmMapper.toDto(film1)).thenReturn(filmDto1);
@@ -139,30 +143,27 @@ class FilmServiceTest {
         List<FilmDto> popular = filmService.getPopularFilms(2);
 
         assertEquals(2, popular.size());
-        assertEquals(1, popular.getFirst().id());
+        assertEquals(1, popular.get(0).id());
         assertEquals(2, popular.get(1).id());
     }
 
     @Test
-    void getPopularFilms_ShouldReturnDefault10_WhenCountIsNull() {
-        FilmDto filmDto1 = new FilmDto(1, "Film 1", "Description 1", LocalDate.of(2020, 1, 1), 120);
-        FilmDto filmDto2 = new FilmDto(2, "Film 2", "Description 2", LocalDate.of(2021, 2, 2), 130);
-
-        when(filmStorage.findPopular(10)).thenReturn(List.of(film1, film2));
-        when(filmMapper.toDto(film1)).thenReturn(filmDto1);
-        when(filmMapper.toDto(film2)).thenReturn(filmDto2);
+    void getPopularFilms_ShouldUseDefault10_WhenCountIsNull() {
+        when(filmStorage.findPopular(10)).thenReturn(List.of());
 
         List<FilmDto> popular = filmService.getPopularFilms(null);
 
-        assertEquals(2, popular.size());
+        assertTrue(popular.isEmpty());
+        verify(filmStorage).findPopular(10);
     }
 
     @Test
-    void getPopularFilms_ShouldReturnEmptyList_WhenNoFilms() {
-        when(filmStorage.findPopular(5)).thenReturn(List.of());
+    void getPopularFilms_ShouldUseDefault10_WhenCountIsNegative() {
+        when(filmStorage.findPopular(10)).thenReturn(List.of());
 
-        List<FilmDto> popular = filmService.getPopularFilms(5);
+        List<FilmDto> popular = filmService.getPopularFilms(-5);
 
         assertTrue(popular.isEmpty());
+        verify(filmStorage).findPopular(10);
     }
 }
